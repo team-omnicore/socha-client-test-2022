@@ -1,3 +1,4 @@
+#[derive(Clone)]
 pub struct Vec2 {
     pub x: i32,
     pub y: i32
@@ -10,10 +11,8 @@ impl Vec2 {
     }
 
     /// Add this vec2 to another
-    pub fn add(self, mut vec2: Vec2) -> Vec2 {
-        vec2.x += self.x;
-        vec2.y += self.y;
-        return vec2;
+    pub fn add(&self, vec2: &Vec2) -> Vec2 {
+        return Vec2::new(vec2.x + self.x, vec2.y + self.y);
     }
 
     /// Creates a new vector with both components initialized to the given value.
@@ -30,4 +29,7 @@ impl Vec2 {
     pub fn max(self, other: Vec2) -> Self {
         Self::new(self.x.max(other.x), self.y.max(other.y))
     }
+
 }
+
+

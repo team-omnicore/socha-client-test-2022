@@ -6,6 +6,7 @@ use quick_xml::events::Event;
 
 pub struct XmlNode{
     pub name: String,
+    pub text: String,
     pub attributes: HashMap<String, String>,
     pub children: Vec<XmlNode>,
 }
@@ -14,6 +15,7 @@ impl XmlNode {
     pub fn new() -> Self {
         Self {
             name: String::new(),
+            text: String::new(),
             attributes: HashMap::new(),
             children: Vec::new(),
         }
@@ -80,6 +82,13 @@ impl XmlNode {
                         final_node = Some(node_stack.pop_back().expect(
                             "Unexpectedly found empty XML node stack while trying to return node",
                         ));
+                    }
+                },
+                Ok(Event::Text(ref e)) => {
+                    if node_stack.len() > 1 {
+                        let mut node = node_stack.pop_back().expect("Unexpectedly found empty XML node stack while trying to hook up new child element");
+                        node.text = String::from_utf8_lossy(e.escaped()).parse().unwrap();
+                        node_stack.push_back(node);
                     }
                 },
                 Ok(Event::End(ref e)) => {
