@@ -103,7 +103,19 @@ impl<const MOVE_COUNT: usize> Piece<MOVE_COUNT> {
                 moves.push(r#move);
             }
         }
-        moves
+        mov
+    }
+}
+
+impl PieceType {
+    pub fn piece_type_from_name(name: &String) -> Option<PieceType> {
+        return match name.as_str().unwrap() {
+            "Moewe" => Some(PieceType::MOEWE),
+            "Robbe" => Some(PieceType::ROBBE),
+            "Muschel" => Some(PieceType::MUSCHEL),
+            "Seestern" => Some(PieceType::SEESTERN),
+            _ => None,
+        };
     }
 }
 

@@ -5,7 +5,9 @@ use crate::nibble::Nibble;
 use crate::piece::PieceType;
 use crate::pos_from_coords;
 use crate::r#move::Move;
+use crate::xml_node::XmlNode;
 use rand::Rng;
+use std::error::Error;
 use std::fmt;
 use std::fmt::{Display, Formatter};
 use std::thread::sleep;
@@ -27,6 +29,18 @@ impl Gamestate {
             board: Board::new(),
             round: 0,
         }
+    }
+
+    pub fn from_xml_node(node: &XmlNode) -> Self {
+        let mut gamestate = Gamestate::new();
+        let start_team = *node.child("startTeam").unwrap().text;
+        let turn: u8 = node.attributes.get("turn").unwrap().parse().unwrap(); //Nach höchstens 30 Zügen ist das spiel um, also brauchen wir nicht mehr speichern
+        gamestate.round = turn;
+
+        let board = node.child("board").unwrap();
+        gamestate.board = Board::from_xml_node(board);
+
+        gamestate
     }
 
     pub fn simulate_dumb(&mut self, turns: u8) {

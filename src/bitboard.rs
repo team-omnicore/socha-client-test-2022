@@ -12,6 +12,13 @@ macro_rules! pos_from_coords {
 }
 
 #[macro_export]
+macro_rules! pos_from_server_coords {
+    ($x:expr, $y:expr) => {
+        ((7 - $y) << 3) + (7 - $x)
+    };
+}
+
+#[macro_export]
 macro_rules! mask_from_coords {
     ($x:expr, $y:expr) => {
         Bitmask {
@@ -26,7 +33,6 @@ pub struct Bitmask {
 }
 
 impl Bitmask {
-
     /// Constructs a new Bitmask with all bits initialised to 0.
     ///
     /// returns: `Bitmask `
