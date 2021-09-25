@@ -26,24 +26,28 @@ impl Team {
     }
 }
 
-impl FromStr for Team{
+impl FromStr for Team {
     type Err = (ParseError);
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "ONE" => Ok(Team::ONE),
             "TWO" => Ok(Team::TWO),
-            &_ => {panic!("No team with name {}", s)}
+            &_ => {
+                panic!("No team with name {}", s)
+            }
         }
     }
 }
 
 impl From<String> for Team {
     fn from(team: String) -> Self {
-        match team.as_str(){
+        match team.as_str() {
             "ONE" => Team::ONE,
             "TWO" => Team::TWO,
-            &_ => {panic!("No team with name {}", team.as_str())}
+            &_ => {
+                panic!("No team with name {}", team.as_str())
+            }
         }
     }
 }

@@ -95,7 +95,7 @@ impl<const MOVE_COUNT: usize> Piece<MOVE_COUNT> {
                 if r#move.out_of_bounds()
                     || board
                         .friendly_pieces
-                        .get_at_coords(r#move.lands_at.x as u8, r#move.lands_at.y as u8)
+                        .get_at_coords(r#move.result.x as u8, r#move.result.y as u8)
                 {
                     continue;
                 }
@@ -103,13 +103,13 @@ impl<const MOVE_COUNT: usize> Piece<MOVE_COUNT> {
                 moves.push(r#move);
             }
         }
-        mov
+        moves
     }
 }
 
 impl PieceType {
     pub fn piece_type_from_name(name: &String) -> Option<PieceType> {
-        return match name.as_str().unwrap() {
+        return match name.as_str() {
             "Moewe" => Some(PieceType::MOEWE),
             "Robbe" => Some(PieceType::ROBBE),
             "Muschel" => Some(PieceType::MUSCHEL),

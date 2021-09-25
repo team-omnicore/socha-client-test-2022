@@ -12,7 +12,7 @@ pub struct Move {
     pub origin: Vec2,
     pub vector: Vec2,
     pub piece: PieceType,
-    pub lands_at: Vec2,
+    pub result: Vec2,
 }
 
 impl Move {
@@ -21,7 +21,7 @@ impl Move {
             origin,
             vector,
             piece,
-            lands_at: origin + vector,
+            result: origin + vector,
         }
     }
 
@@ -32,10 +32,7 @@ impl Move {
     }
 
     pub fn out_of_bounds(&self) -> bool {
-        return self.lands_at.x > 7
-            || self.lands_at.y > 7
-            || self.lands_at.x < 0
-            || self.lands_at.y < 0;
+        return self.result.x > 7 || self.result.y > 7 || self.result.x < 0 || self.result.y < 0;
     }
 }
 

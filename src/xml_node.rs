@@ -4,7 +4,7 @@ use std::collections::{HashMap, VecDeque};
 use std::io::BufReader;
 use std::net::TcpStream;
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
 pub struct XmlNode {
     pub name: String,
     pub text: String,

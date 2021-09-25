@@ -7,14 +7,14 @@ use thincollections::thin_v64::V64;
 #[macro_export]
 macro_rules! pos_from_coords {
     ($x:expr, $y:expr) => {
-        ($y << 3) + (7 - $x)
+        (($y << 3) + (7 - $x)) as u8
     };
 }
 
 #[macro_export]
 macro_rules! pos_from_server_coords {
     ($x:expr, $y:expr) => {
-        ((7 - $y) << 3) + (7 - $x)
+        (((7 - $y) << 3) + (7 - $x)) as u8
     };
 }
 
