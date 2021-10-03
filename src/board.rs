@@ -1,38 +1,40 @@
-use crate::bitboard::Bitmask;
+use crate::bitboard::Bitboard;
+use crate::coords;
+use crate::game_move::Move;
 use crate::piece::pieces::*;
 use crate::piece::PieceType;
-use crate::pos_from_coords;
-use crate::r#move::Move;
+use crate::position;
 use crate::team::Team;
+use crate::vec2::{Vec2};
 use crate::xml_node::XmlNode;
 use std::fmt;
 use std::fmt::{Display, Formatter};
 
 #[derive(Debug, Copy, Clone)]
 pub struct Board {
-    pub enemy_pieces: Bitmask,
-    pub friendly_pieces: Bitmask,
-    pub seesterne: Bitmask,
-    pub muscheln: Bitmask,
-    pub moewen: Bitmask,
-    pub robben: Bitmask,
-    pub double_stack: Bitmask,
+    pub enemy_pieces: Bitboard,
+    pub friendly_pieces: Bitboard,
+    pub seesterne: Bitboard,
+    pub muscheln: Bitboard,
+    pub moewen: Bitboard,
+    pub robben: Bitboard,
+    pub double_stack: Bitboard,
 }
 
 impl Board {
     pub const fn new() -> Self {
         Board {
-            enemy_pieces: Bitmask::new(),
-            friendly_pieces: Bitmask::new(),
-            seesterne: Bitmask::new(),
-            muscheln: Bitmask::new(),
-            moewen: Bitmask::new(),
-            robben: Bitmask::new(),
-            double_stack: Bitmask::new(),
+            enemy_pieces: Bitboard::new(),
+            friendly_pieces: Bitboard::new(),
+            seesterne: Bitboard::new(),
+            muscheln: Bitboard::new(),
+            moewen: Bitboard::new(),
+            robben: Bitboard::new(),
+            double_stack: Bitboard::new(),
         }
     }
 
-    pub fn calculate_legal(&self) -> Vec<Move> {
+    pub fn legal_moves(&self) -> Vec<Move> {
         let moewen = self.moewen & self.friendly_pieces;
         let robben = self.robben & self.friendly_pieces;
         let muscheln = self.muscheln & self.friendly_pieces;
@@ -46,19 +48,10 @@ impl Board {
         return out;
     }
 
-    pub fn setup_random(&mut self) {
-        self.friendly_pieces.bits = 0x00000000000000FF;
-        self.enemy_pieces.bits = 0xFF00000000000000;
-        self.robben.bits = 0x0900000000000012;
-        self.seesterne.bits = 0xA0000000000000A0;
-        self.muscheln.bits = 0x1200000000000009;
-        self.moewen.bits = 0x4400000000000044;
-    }
-
     pub fn apply(&mut self, r#move: &Move) -> u8 {
         //We know that the move is legal, now apply it to the board
 
-        let origin = pos_from_coords!(r#move.origin.x as u8, r#move.origin.y as u8) as u8;
+        let origin = position!(r#move.origin.x as u8, r#move.origin.y as u8) as u8;
 
         //Clear origin position of data
         match r#move.piece {
@@ -75,7 +68,7 @@ impl Board {
 
         let set_move = r#move.origin + r#move.vector;
 
-        let pos = pos_from_coords!(set_move.x as u8, set_move.y as u8);
+        let pos = position!(set_move.x as u8, set_move.y as u8);
 
         //Points to increase game by
         let mut points = 0u8;
@@ -118,14 +111,60 @@ impl Board {
         return points;
     }
 
-    pub fn switch_sides(&mut self) {
-        self.friendly_pieces.reverse();
-        self.enemy_pieces.reverse();
-        self.seesterne.reverse();
-        self.moewen.reverse();
-        self.muscheln.reverse();
-        self.robben.reverse();
-        self.double_stack.reverse();
+
+    ///Apply anonymous move. Maybe create an own struct?
+    pub fn apply_anonymous(&mut self, origin_pos: u8, result_pos: u8) -> u8 {
+        let origin = coords!(origin_pos);
+        let result = coords!(result_pos);
+
+        let vector = result - origin;
+        let r#move = Move::new(
+            origin,
+            vector,
+            self.piece_at(origin_pos).expect("What the fuck"),
+        );
+
+        return self.apply(&r#move);
+    }
+
+    pub fn rotate90_clockwise(&mut self) {
+        self.friendly_pieces = self.friendly_pieces.rotate90_clockwise();
+        self.enemy_pieces = self.enemy_pieces.rotate90_clockwise();
+        self.double_stack = self.double_stack.rotate90_clockwise();
+        self.robben = self.robben.rotate90_clockwise();
+        self.seesterne = self.seesterne.rotate90_clockwise();
+        self.moewen = self.moewen.rotate90_clockwise();
+        self.muscheln = self.muscheln.rotate90_clockwise();
+    }
+
+    pub fn rotate90_anti_clockwise(&mut self) {
+        self.friendly_pieces = self.friendly_pieces.rotate90_anti_clockwise();
+        self.enemy_pieces = self.enemy_pieces.rotate90_anti_clockwise();
+        self.double_stack = self.double_stack.rotate90_anti_clockwise();
+        self.robben = self.robben.rotate90_anti_clockwise();
+        self.seesterne = self.seesterne.rotate90_anti_clockwise();
+        self.moewen = self.moewen.rotate90_anti_clockwise();
+        self.muscheln = self.muscheln.rotate90_anti_clockwise();
+    }
+
+    pub fn rotate180(&mut self) {
+        self.friendly_pieces = self.friendly_pieces.rotate180();
+        self.enemy_pieces = self.enemy_pieces.rotate180();
+        self.double_stack = self.double_stack.rotate180();
+        self.robben = self.robben.rotate180();
+        self.seesterne = self.seesterne.rotate180();
+        self.moewen = self.moewen.rotate180();
+        self.muscheln = self.muscheln.rotate180();
+    }
+
+    pub fn flip_horizontal(&mut self) {
+        self.friendly_pieces = self.friendly_pieces.flip_horizontal();
+        self.enemy_pieces = self.enemy_pieces.flip_horizontal();
+        self.double_stack = self.double_stack.flip_horizontal();
+        self.robben = self.robben.flip_horizontal();
+        self.seesterne = self.seesterne.flip_horizontal();
+        self.moewen = self.moewen.flip_horizontal();
+        self.muscheln = self.muscheln.flip_horizontal();
     }
 
     pub fn piece_at(&self, pos: u8) -> Option<PieceType> {
@@ -149,12 +188,14 @@ impl Display for Board {
         for i in (0..64).rev() {
             let plot = match self.piece_at(i) {
                 None => "-",
-                Some(piece) => match piece {
-                    PieceType::ROBBE => "R",
-                    PieceType::MUSCHEL => "M",
-                    PieceType::SEESTERN => "S",
-                    PieceType::MOEWE => "V",
-                },
+                Some(piece) => {
+                    match piece {
+                        PieceType::ROBBE => "R",
+                        PieceType::MUSCHEL => "H",
+                        PieceType::SEESTERN => "S",
+                        PieceType::MOEWE => "M",
+                    }
+                }
             };
 
             out.push_str(plot);
@@ -178,6 +219,7 @@ impl Display for Board {
     }
 }
 
+///From board node
 impl From<&XmlNode> for Board {
     fn from(node: &XmlNode) -> Self {
         let mut board = Board::new();
@@ -185,42 +227,61 @@ impl From<&XmlNode> for Board {
 
         for entry in &pieces.children {
             let coordinates = entry.child("coordinates").unwrap();
-            let x: u8 = coordinates
+            let x = coordinates
                 .attributes
                 .get("x")
                 .unwrap()
-                .parse()
+                .get(0)
+                .unwrap()
+                .parse::<u8>()
                 .expect("Failed to parse coordinates while deserializing");
-            let y: u8 = coordinates
+
+            let y = coordinates
                 .attributes
                 .get("y")
                 .unwrap()
-                .parse()
+                .get(0)
+                .unwrap()
+                .parse::<u8>()
                 .expect("Failed to parse coordinates while deserializing");
 
             let piece_node = entry.child("piece").unwrap();
-            let piece_type =
-                PieceType::piece_type_from_name(piece_node.attributes.get("type").unwrap())
-                    .expect("Failed to associate Piece type while deserializing");
 
-            let team = piece_node
+            let piece_type = PieceType::from(
+                piece_node
+                    .attributes
+                    .get("type")
+                    .unwrap()
+                    .get(0)
+                    .expect("Failed to match piece"),
+            );
+
+            let piece_team = piece_node
                 .attributes
                 .get("team")
                 .unwrap()
-                .parse()
+                .get(0)
+                .unwrap()
+                .parse::<Team>()
                 .expect("Failed to associate Team while deserializing");
 
-            let stacked = match piece_node.attributes.get("count").unwrap().parse::<u8>() {
+            let stacked = match piece_node
+                .attributes
+                .get("count")
+                .unwrap()
+                .get(0)
+                .unwrap()
+                .parse::<u8>()
+            {
                 Ok(2) => true,
                 _ => false,
             };
 
-            let pos = crate::pos_from_server_coords!(x, y);
+            let pos = position!(x, y);
 
-            /////////////////////////////////////////////////////////////
-
-            //Davon ausgegangen, dass wir team 1 sind
-            match team {
+            //Presuming we are player 1
+            //If the piece team is ONE, then the piece is friendly. Else its the enemies piece.
+            match piece_team {
                 Team::ONE => board.friendly_pieces.set(pos),
                 Team::TWO => board.enemy_pieces.set(pos),
             }

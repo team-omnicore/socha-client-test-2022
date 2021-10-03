@@ -23,6 +23,20 @@ impl Vec2 {
             y: (pos >> 3) as i8,
         }
     }
+
+    pub fn rotate_clock_90(&mut self) {
+        self.y = -self.y;
+        self.x ^= self.y;
+        self.y ^= self.x;
+        self.x ^= self.y;
+    }
+
+    pub fn rotate_anti_90(&mut self) {
+        self.x = -self.x;
+        self.x ^= self.y;
+        self.y ^= self.x;
+        self.x ^= self.y;
+    }
 }
 
 impl Add for Vec2 {

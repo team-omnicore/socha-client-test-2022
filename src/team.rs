@@ -2,7 +2,7 @@ use std::str::FromStr;
 use std::string::ParseError;
 
 #[derive(Copy, Clone, Debug)]
-pub(crate) enum Team {
+pub enum Team {
     ONE,
     TWO,
 }
@@ -27,26 +27,26 @@ impl Team {
 }
 
 impl FromStr for Team {
-    type Err = (ParseError);
+    type Err = ParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "ONE" => Ok(Team::ONE),
             "TWO" => Ok(Team::TWO),
-            &_ => {
+            s => {
                 panic!("No team with name {}", s)
             }
         }
     }
 }
 
-impl From<String> for Team {
-    fn from(team: String) -> Self {
+impl From<&String> for Team {
+    fn from(team: &String) -> Self {
         match team.as_str() {
             "ONE" => Team::ONE,
             "TWO" => Team::TWO,
-            &_ => {
-                panic!("No team with name {}", team.as_str())
+            team => {
+                panic!("No team with name {}", team)
             }
         }
     }

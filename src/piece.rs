@@ -1,10 +1,12 @@
 #![allow(dead_code)]
 
-use crate::bitboard::Bitmask;
+use crate::bitboard::Bitboard;
 use crate::board::Board;
-use crate::r#move::Move;
+use crate::game_move::Move;
 use crate::vec2::Vec2;
 use std::fmt::{Display, Formatter};
+use std::str::FromStr;
+use std::string::ParseError;
 
 pub mod pieces {
     use crate::piece::{Piece, PieceType};
@@ -26,7 +28,7 @@ pub mod pieces {
     );
 
     pub const MUSCHEL: Piece<2> = Piece::new(
-        "Muschel",
+        "Herzmuschel",
         &PieceType::MUSCHEL,
         [Vec2::new(1, 1), Vec2::new(-1, 1)],
     );
@@ -83,7 +85,7 @@ impl<const MOVE_COUNT: usize> Piece<MOVE_COUNT> {
         }
     }
 
-    pub fn calculate_moves(&self, piece_positions: Bitmask, board: &Board) -> Vec<Move> {
+    pub fn calculate_moves(&self, piece_positions: Bitboard, board: &Board) -> Vec<Move> {
         let mut moves: Vec<Move> = Vec::new();
         for position in piece_positions.get_set_bits() {
             let origin = Vec2::from_pos(position);
@@ -112,9 +114,23 @@ impl PieceType {
         return match name.as_str() {
             "Moewe" => Some(PieceType::MOEWE),
             "Robbe" => Some(PieceType::ROBBE),
-            "Muschel" => Some(PieceType::MUSCHEL),
+            "Herzmuschel" => Some(PieceType::MUSCHEL),
             "Seestern" => Some(PieceType::SEESTERN),
             _ => None,
+        };
+    }
+}
+
+impl From<&String> for PieceType {
+    fn from(str: &String) -> Self {
+        return match str.as_str() {
+            "Moewe" => PieceType::MOEWE,
+            "Robbe" => PieceType::ROBBE,
+            "Herzmuschel" => PieceType::MUSCHEL,
+            "Seestern" => PieceType::SEESTERN,
+            piece => {
+                panic!("No piece of type: {}", piece)
+            }
         };
     }
 }
@@ -133,6 +149,22 @@ impl Display for PieceType {
             }
             PieceType::MOEWE => {
                 write!(f, "{}", pieces::MOEWE.name)
+            }
+        }
+    }
+}
+
+impl FromStr for PieceType {
+    type Err = ParseError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "Moewe" => Ok(PieceType::MOEWE),
+            "Robbe" => Ok(PieceType::ROBBE),
+            "Herzmuschel" => Ok(PieceType::MUSCHEL),
+            "Seestern" => Ok(PieceType::SEESTERN),
+            piece => {
+                panic!("No piece of type: {}", piece)
             }
         }
     }

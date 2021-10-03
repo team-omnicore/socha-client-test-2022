@@ -1,14 +1,14 @@
-use quick_xml::events::Event;
-use quick_xml::Reader;
 use std::collections::{HashMap, VecDeque};
 use std::io::BufReader;
 use std::net::TcpStream;
+use xml::reader::XmlEvent;
+use xml::EventReader;
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct XmlNode {
     pub name: String,
-    pub text: String,
-    pub attributes: HashMap<String, String>,
+    pub data: String,
+    pub attributes: HashMap<String, Vec<String>>,
     pub children: Vec<XmlNode>,
 }
 
@@ -16,14 +16,14 @@ impl XmlNode {
     pub fn new() -> Self {
         Self {
             name: String::new(),
-            text: String::new(),
+            data: String::new(),
             attributes: HashMap::new(),
             children: Vec::new(),
         }
     }
 
     pub fn child(&self, name: &str) -> Option<&XmlNode> {
-        for child in &self.children {
+        for child in self.children.iter() {
             if child.name.as_str() == name {
                 return Some(child);
             }
@@ -31,88 +31,50 @@ impl XmlNode {
         None
     }
 
-    pub fn read_from(stream: &TcpStream) -> Self {
+    pub fn read_from(xml_parser: &mut EventReader<BufReader<&TcpStream>>) -> Self {
         let mut node_stack: VecDeque<XmlNode> = VecDeque::new();
         let mut has_received_first = false;
         let mut final_node: Option<XmlNode> = None;
 
-        let mut buf = Vec::new();
-
-        let mut reader = Reader::from_reader(BufReader::new(stream));
         loop {
-            match reader.read_event(&mut buf) {
-                Ok(Event::Start(ref e)) => {
+            match xml_parser.next() {
+                Ok(XmlEvent::StartElement {
+                    name, attributes, ..
+                }) => {
                     let mut node = XmlNode::new();
-                    node.name = String::from_utf8_lossy(e.name()).parse().unwrap();
-                    for attribute_result in e.attributes() {
-                        match attribute_result {
-                            Ok(attribute) => unsafe {
-                                let key: String =
-                                    String::from_utf8_lossy(attribute.key).parse().unwrap();
-                                let value: String =
-                                    String::from_utf8_lossy(&*attribute.value).parse().unwrap();
-                                if !node.attributes.contains_key(&key) {
-                                    node.attributes.insert(key, value);
-                                }
-                            },
-                            Err(_) => {
-                                panic!("Multiple attributes with same key")
-                            }
+                    node.name = name.local_name;
+                    for attribute in attributes {
+                        let attrib_name = attribute.name.local_name;
+                        if !node.attributes.contains_key(&attrib_name) {
+                            node.attributes.insert(attrib_name.to_string(), Vec::new());
                         }
+                        node.attributes
+                            .get_mut(&attrib_name)
+                            .unwrap()
+                            .push(attribute.value.to_string());
                     }
-
                     node_stack.push_back(node);
                     has_received_first = true;
                 }
-                Ok(Event::Empty(ref e)) => {
-                    let mut node = XmlNode::new();
-                    node.name = String::from_utf8_lossy(e.name()).parse().unwrap();
-
-                    for attribute_result in e.attributes() {
-                        match attribute_result {
-                            Ok(attribute) => unsafe {
-                                let key: String =
-                                    String::from_utf8_lossy(attribute.key).parse().unwrap();
-                                let value: String =
-                                    String::from_utf8_lossy(&*attribute.value).parse().unwrap();
-                                node.attributes.insert(key, value);
-                            },
-                            Err(_) => {
-                                panic!("Multiple attributes with same key")
-                            }
-                        }
-                    }
-                    if node_stack.len() > 1 {
-                        let mut parent_node = node_stack.pop_back().expect("Unexpectedly found empty XML node stack while trying to hook up new child element");
-                        parent_node.children.push(node);
-                        node_stack.push_back(parent_node);
-                    } else {
-                        final_node = Some(node_stack.pop_back().expect(
-                            "Unexpectedly found empty XML node stack while trying to return node",
-                        ));
-                    }
-                }
-                Ok(Event::Text(ref e)) => {
-                    if node_stack.len() > 1 {
-                        let mut node = node_stack.pop_back().expect("Unexpectedly found empty XML node stack while trying to hook up new child element");
-                        node.text = String::from_utf8_lossy(e.escaped()).parse().unwrap();
-                        node_stack.push_back(node);
-                    }
-                }
-                Ok(Event::End(ref e)) => {
+                Ok(XmlEvent::EndElement { .. }) => {
                     if node_stack.len() > 2 {
-                        let node = node_stack.pop_back().expect("Unexpectedly found empty XML node stack while trying to pop off new child element");
-                        let mut parent_node = node_stack.pop_back().expect("Unexpectedly found empty XML node stack while trying to hook up new child element");
-                        parent_node.children.push(node);
-                        node_stack.push_back(parent_node);
+                        let child = node_stack.pop_back().expect("Unexpectedly found empty XML node stack while trying to pop off new child element");
+                        let mut node = node_stack.pop_back().expect("Unexpectedly found empty XML node stack while trying to hook up new child element");
+                        node.children.push(child);
+                        node_stack.push_back(node);
                     } else if has_received_first {
                         final_node = Some(node_stack.pop_back().expect(
                             "Unexpectedly found empty XML node stack while trying to return node",
                         ));
                     }
                 }
-                Err(_) => panic!("Error"),
-                _ => (),
+                Ok(XmlEvent::Characters(content)) => {
+                    node_stack.back_mut().expect("Unexpectedly found empty XML node stack while trying to add characters").data += content.as_str();
+                }
+                Err(_) => {
+                    break;
+                }
+                _ => {}
             }
             if final_node.is_some() {
                 break;

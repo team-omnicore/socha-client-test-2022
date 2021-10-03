@@ -1,16 +1,12 @@
 #![macro_use]
 
 use crate::board::Board;
+use crate::game_move::Move;
 use crate::nibble::Nibble;
-use crate::piece::PieceType;
-use crate::pos_from_coords;
-use crate::r#move::Move;
 use crate::xml_node::XmlNode;
-use rand::Rng;
-use std::error::Error;
+use rand::{random, Rng};
 use std::fmt;
 use std::fmt::{Display, Formatter};
-use std::thread::sleep;
 
 #[derive(Debug, Copy, Clone)]
 pub struct Gamestate {
@@ -28,19 +24,10 @@ impl Gamestate {
         }
     }
 
-    pub fn simulate_dumb(&mut self, turns: u8) {
-        if turns == 0 || self.points.get_left() == 2 || self.points.get_right() == 2 {
-            return;
-        }
-
-        let legal = self.board.calculate_legal();
-
-        for my_move in legal {
-            let mut clone = Self::clone(self);
-            clone.board.apply(&my_move);
-            clone.board.switch_sides();
-            clone.simulate_dumb(turns - 1);
-        }
+    pub fn best_move(&mut self) -> Move {
+        let legal = self.board.legal_moves();
+        let index: usize = random::<usize>() % legal.len();
+        legal[index]
     }
 
     pub fn alpha_beta(
@@ -54,14 +41,14 @@ impl Gamestate {
             return self.eval();
         }
 
-        let legal_moves = self.board.calculate_legal();
+        let legal_moves = self.board.legal_moves();
 
         return if maximizing_player {
             let mut max_eval = f32::NEG_INFINITY;
             for game_move in legal_moves {
                 let mut clone = Self::clone(self);
                 clone.board.apply(&game_move);
-                clone.board.switch_sides();
+                clone.board.rotate180();
                 let eval = clone.alpha_beta(depth - 1, alpha, beta, false);
                 max_eval = f32::max(max_eval, eval);
                 alpha = f32::max(alpha, eval);
@@ -75,7 +62,7 @@ impl Gamestate {
             for game_move in legal_moves {
                 let mut clone = Self::clone(self);
                 clone.board.apply(&game_move);
-                clone.board.switch_sides();
+                clone.board.rotate180();
                 let eval = clone.alpha_beta(depth - 1, alpha, beta, true);
                 min_eval = f32::min(min_eval, eval);
                 beta = f32::min(alpha, eval);
@@ -107,8 +94,15 @@ impl Display for Gamestate {
 impl From<&XmlNode> for Gamestate {
     fn from(node: &XmlNode) -> Self {
         let mut gamestate = Gamestate::new();
-        let start_team = &node.child("startTeam").unwrap().text;
-        let turn: u8 = node.attributes.get("turn").unwrap().parse().unwrap(); //Nach höchstens 30 Zügen ist das spiel um, also brauchen wir nicht mehr speichern
+        let turn: u8 = node
+            .attributes
+            .get("turn")
+            .unwrap()
+            .get(0)
+            .unwrap()
+            .parse()
+            .unwrap();
+
         gamestate.round = turn;
 
         let board_node = node.child("board").unwrap();
