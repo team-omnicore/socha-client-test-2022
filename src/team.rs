@@ -1,7 +1,7 @@
 use std::str::FromStr;
 use std::string::ParseError;
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub enum Team {
     ONE,
     TWO,
@@ -42,12 +42,6 @@ impl FromStr for Team {
 
 impl From<&String> for Team {
     fn from(team: &String) -> Self {
-        match team.as_str() {
-            "ONE" => Team::ONE,
-            "TWO" => Team::TWO,
-            team => {
-                panic!("No team with name {}", team)
-            }
-        }
+        team.as_str().parse::<Team>().unwrap()
     }
 }

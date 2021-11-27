@@ -4,7 +4,7 @@ use crate::board::Board;
 use crate::game_move::Move;
 use crate::nibble::Nibble;
 use crate::xml_node::XmlNode;
-use rand::{random, Rng};
+use rand::random;
 use std::fmt;
 use std::fmt::{Display, Formatter};
 
@@ -76,7 +76,7 @@ impl Gamestate {
 
     /// Eval function
     pub fn eval(&self) -> f32 {
-        rand::thread_rng().gen()
+        (self.points.get_left() - self.points.get_right()) as f32
     }
 
     /// Win condition

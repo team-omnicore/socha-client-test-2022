@@ -35,13 +35,7 @@ macro_rules! rotate_clock_90 {
 macro_rules! pos_from_server_coords {
     ($x:expr, $y:expr) => {
         (($x << 3) + (7 - $y)) as u8
-    }; /*
-       macro_rules! pos_from_server_coords {
-           ($x:expr, $y:expr) => {
-               (((7 - $y) << 3) + (7 - $x)) as u8
-           };
-       }
-        */
+    };
 }
 #[macro_export]
 macro_rules! mask_from_coords {

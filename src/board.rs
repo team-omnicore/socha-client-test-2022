@@ -5,7 +5,7 @@ use crate::piece::pieces::*;
 use crate::piece::PieceType;
 use crate::position;
 use crate::team::Team;
-use crate::vec2::{Vec2};
+use crate::vec2::Vec2;
 use crate::xml_node::XmlNode;
 use std::fmt;
 use std::fmt::{Display, Formatter};
@@ -111,7 +111,6 @@ impl Board {
         return points;
     }
 
-
     ///Apply anonymous move. Maybe create an own struct?
     pub fn apply_anonymous(&mut self, origin_pos: u8, result_pos: u8) -> u8 {
         let origin = coords!(origin_pos);
@@ -188,14 +187,12 @@ impl Display for Board {
         for i in (0..64).rev() {
             let plot = match self.piece_at(i) {
                 None => "-",
-                Some(piece) => {
-                    match piece {
-                        PieceType::ROBBE => "R",
-                        PieceType::MUSCHEL => "H",
-                        PieceType::SEESTERN => "S",
-                        PieceType::MOEWE => "M",
-                    }
-                }
+                Some(piece) => match piece {
+                    PieceType::ROBBE => "R",
+                    PieceType::MUSCHEL => "H",
+                    PieceType::SEESTERN => "S",
+                    PieceType::MOEWE => "M",
+                },
             };
 
             out.push_str(plot);
