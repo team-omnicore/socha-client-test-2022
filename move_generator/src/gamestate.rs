@@ -37,7 +37,7 @@ impl Gamestate {
     }
 
     pub fn perft_up_to(&self, depth: u8) {
-        println!("| Perft level | Move-count | time taken | Speed | Multiplier |\n| ----------- | ----------- | ----------- | ----------- | ----------- |");
+        println!("|Depth|Move-count|Elapsed time|Speed|Multiplier|\n|---|---|---|---|---|");
 
         let mut last_time = 1f64;
         let mut last_count = 1f64;
@@ -50,7 +50,7 @@ impl Gamestate {
             let estimated_finish = current_time.checked_add_signed(chrono::Duration::from_std(estimated_duration).unwrap()).unwrap();
 
             print!(
-                "Estimated time is {:.1?} - Working since {} - Finishes {}",
+                "> Estimated time is {:.1?} - Working since {} - Finishes {}",
                 estimated_duration,
                 current_time.format("%Y-%m-%d %H:%M:%S"),
                 estimated_finish.format("%Y-%m-%d %H:%M:%S")
@@ -70,7 +70,7 @@ impl Gamestate {
             let speed = count as f64 / duration.as_secs_f64();
 
             println!(
-                "\rPerft {:>1} | {:>18} | {:>10.2?} | {:>20} | {:>10.1}",
+                "\rPerft {:>1} | {:>18} | {:>10.2?} | {:>16} | {:>3.1}x",
                 i,
                 count.separated_string(),
                 duration,

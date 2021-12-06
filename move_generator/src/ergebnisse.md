@@ -160,3 +160,14 @@ Perft  6 |        608,131,591 |      1.02s |     597.7 MNodes/sec
 Perft  7 |     11,933,458,089 |     19.75s |     604.1 MNodes/sec
 
 > Ok that greatly improved times
+
+|Depth|Move-count|Elapsed time|Speed|Multiplier|
+|---|---|---|---|---|
+Perft 0 |                 17 |   600.00ns |  28.3 MNodes/sec | 17.0x
+Perft 1 |                289 |     1.20µs | 240.8 MNodes/sec | 17.0x
+Perft 2 |              5,066 |     9.90µs | 511.7 MNodes/sec | 17.5x
+Perft 3 |             88,804 |   168.50µs | 527.0 MNodes/sec | 17.5x
+Perft 4 |          1,658,540 |     2.98ms | 556.8 MNodes/sec | 18.7x
+Perft 5 |         30,968,180 |    54.67ms | 566.4 MNodes/sec | 18.7x
+Perft 6 |        608,131,591 |      1.02s | 594.0 MNodes/sec | 19.6x
+> Estimated time is 19.2s - Working since 2021-12-06 22:00:15 - Finishes 2021-12-06 22:00:34
