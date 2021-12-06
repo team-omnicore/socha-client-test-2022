@@ -75,54 +75,332 @@ const LOOKUP_ROBBEN: [u64; 64] = [
     0x10A00000000000,
     0x20400000000000,
 ];
-
-pub fn muschel_gen_moves(muschel: Bitboard) -> Bitboard {
-    let muschel_loc = muschel.bits;
-
-    let clip_file_a = muschel_loc & NOT_FILE_A;
-    let clip_file_h = muschel_loc & NOT_FILE_H;
-
-    let spot_1 = clip_file_a << 7;
-    let spot_3 = clip_file_h << 9;
-
-    let moves = spot_1 | spot_3;
-
-    Bitboard::from(moves)
-}
-
-pub fn moewe_gen_moves(moewe: Bitboard) -> Bitboard {
-    let moewe_loc = moewe.bits;
-
-    let clip_file_a = moewe_loc & NOT_FILE_A;
-    let clip_file_h = moewe_loc & NOT_FILE_H;
-
-    let spot_2 = moewe_loc << 8;
-    let spot_4 = clip_file_h << 1;
-    let spot_6 = moewe_loc >> 8;
-    let spot_8 = clip_file_a >> 1;
-
-    let moves = spot_2 | spot_4 | spot_6 | spot_8;
-
-    Bitboard::from(moves)
-}
-
-pub fn seestern_gen_moves(seestern: Bitboard) -> Bitboard {
-    let seestern_loc = seestern.bits;
-
-    let clip_file_a = seestern_loc & NOT_FILE_A;
-    let clip_file_h = seestern_loc & NOT_FILE_H;
-
-    let spot_1 = clip_file_a << 7;
-    let spot_2 = seestern_loc << 8;
-    let spot_3 = clip_file_h << 9;
-
-    let spot_5 = clip_file_h >> 7;
-    let spot_7 = clip_file_a >> 9;
-
-    let moves = spot_1 | spot_2 | spot_3 | spot_5 | spot_7;
-
-    Bitboard::from(moves)
-}
+const LOOKUP_MOEWEN: [u64; 64] = [
+    0x102,
+    0x205,
+    0x40A,
+    0x814,
+    0x1028,
+    0x2050,
+    0x40A0,
+    0x8040,
+    0x10201,
+    0x20502,
+    0x40A04,
+    0x81408,
+    0x102810,
+    0x205020,
+    0x40A040,
+    0x804080,
+    0x1020100,
+    0x2050200,
+    0x40A0400,
+    0x8140800,
+    0x10281000,
+    0x20502000,
+    0x40A04000,
+    0x80408000,
+    0x102010000,
+    0x205020000,
+    0x40A040000,
+    0x814080000,
+    0x1028100000,
+    0x2050200000,
+    0x40A0400000,
+    0x8040800000,
+    0x10201000000,
+    0x20502000000,
+    0x40A04000000,
+    0x81408000000,
+    0x102810000000,
+    0x205020000000,
+    0x40A040000000,
+    0x804080000000,
+    0x1020100000000,
+    0x2050200000000,
+    0x40A0400000000,
+    0x8140800000000,
+    0x10281000000000,
+    0x20502000000000,
+    0x40A04000000000,
+    0x80408000000000,
+    0x102010000000000,
+    0x205020000000000,
+    0x40A040000000000,
+    0x814080000000000,
+    0x1028100000000000,
+    0x2050200000000000,
+    0x40A0400000000000,
+    0x8040800000000000,
+    0x201000000000000,
+    0x502000000000000,
+    0xA04000000000000,
+    0x1408000000000000,
+    0x2810000000000000,
+    0x5020000000000000,
+    0xA040000000000000,
+    0x4080000000000000,
+];
+const LOOKUP_SEESTERN: [u64; 128] = [
+    0x200,
+    0x500,
+    0xA00,
+    0x1400,
+    0x2800,
+    0x5000,
+    0xA000,
+    0x4000,
+    0x20003,
+    0x50007,
+    0xA000E,
+    0x14001C,
+    0x280038,
+    0x500070,
+    0xA000E0,
+    0x4000C0,
+    0x2000300,
+    0x5000700,
+    0xA000E00,
+    0x14001C00,
+    0x28003800,
+    0x50007000,
+    0xA000E000,
+    0x4000C000,
+    0x200030000,
+    0x500070000,
+    0xA000E0000,
+    0x14001C0000,
+    0x2800380000,
+    0x5000700000,
+    0xA000E00000,
+    0x4000C00000,
+    0x20003000000,
+    0x50007000000,
+    0xA000E000000,
+    0x14001C000000,
+    0x280038000000,
+    0x500070000000,
+    0xA000E0000000,
+    0x4000C0000000,
+    0x2000300000000,
+    0x5000700000000,
+    0xA000E00000000,
+    0x14001C00000000,
+    0x28003800000000,
+    0x50007000000000,
+    0xA000E000000000,
+    0x4000C000000000,
+    0x200030000000000,
+    0x500070000000000,
+    0xA000E0000000000,
+    0x14001C0000000000,
+    0x2800380000000000,
+    0x5000700000000000,
+    0xA000E00000000000,
+    0x4000C00000000000,
+    0x3000000000000,
+    0x7000000000000,
+    0xE000000000000,
+    0x1C000000000000,
+    0x38000000000000,
+    0x70000000000000,
+    0xE0000000000000,
+    0xC0000000000000,
+    0x300,
+    0x700,
+    0xE00,
+    0x1C00,
+    0x3800,
+    0x7000,
+    0xE000,
+    0xC000,
+    0x30002,
+    0x70005,
+    0xE000A,
+    0x1C0014,
+    0x380028,
+    0x700050,
+    0xE000A0,
+    0xC00040,
+    0x3000200,
+    0x7000500,
+    0xE000A00,
+    0x1C001400,
+    0x38002800,
+    0x70005000,
+    0xE000A000,
+    0xC0004000,
+    0x300020000,
+    0x700050000,
+    0xE000A0000,
+    0x1C00140000,
+    0x3800280000,
+    0x7000500000,
+    0xE000A00000,
+    0xC000400000,
+    0x30002000000,
+    0x70005000000,
+    0xE000A000000,
+    0x1C0014000000,
+    0x380028000000,
+    0x700050000000,
+    0xE000A0000000,
+    0xC00040000000,
+    0x3000200000000,
+    0x7000500000000,
+    0xE000A00000000,
+    0x1C001400000000,
+    0x38002800000000,
+    0x70005000000000,
+    0xE000A000000000,
+    0xC0004000000000,
+    0x300020000000000,
+    0x700050000000000,
+    0xE000A0000000000,
+    0x1C00140000000000,
+    0x3800280000000000,
+    0x7000500000000000,
+    0xE000A00000000000,
+    0xC000400000000000,
+    0x2000000000000,
+    0x5000000000000,
+    0xA000000000000,
+    0x14000000000000,
+    0x28000000000000,
+    0x50000000000000,
+    0xA0000000000000,
+    0x40000000000000,
+];
+const LOOKUP_MUSCHELN: [u64; 128] = [
+    0x0,
+    0x0,
+    0x0,
+    0x0,
+    0x0,
+    0x0,
+    0x0,
+    0x0,
+    0x2,
+    0x5,
+    0xA,
+    0x14,
+    0x28,
+    0x50,
+    0xA0,
+    0x40,
+    0x200,
+    0x500,
+    0xA00,
+    0x1400,
+    0x2800,
+    0x5000,
+    0xA000,
+    0x4000,
+    0x20000,
+    0x50000,
+    0xA0000,
+    0x140000,
+    0x280000,
+    0x500000,
+    0xA00000,
+    0x400000,
+    0x2000000,
+    0x5000000,
+    0xA000000,
+    0x14000000,
+    0x28000000,
+    0x50000000,
+    0xA0000000,
+    0x40000000,
+    0x200000000,
+    0x500000000,
+    0xA00000000,
+    0x1400000000,
+    0x2800000000,
+    0x5000000000,
+    0xA000000000,
+    0x4000000000,
+    0x20000000000,
+    0x50000000000,
+    0xA0000000000,
+    0x140000000000,
+    0x280000000000,
+    0x500000000000,
+    0xA00000000000,
+    0x400000000000,
+    0x2000000000000,
+    0x5000000000000,
+    0xA000000000000,
+    0x14000000000000,
+    0x28000000000000,
+    0x50000000000000,
+    0xA0000000000000,
+    0x40000000000000,
+    0x200,
+    0x500,
+    0xA00,
+    0x1400,
+    0x2800,
+    0x5000,
+    0xA000,
+    0x4000,
+    0x20000,
+    0x50000,
+    0xA0000,
+    0x140000,
+    0x280000,
+    0x500000,
+    0xA00000,
+    0x400000,
+    0x2000000,
+    0x5000000,
+    0xA000000,
+    0x14000000,
+    0x28000000,
+    0x50000000,
+    0xA0000000,
+    0x40000000,
+    0x200000000,
+    0x500000000,
+    0xA00000000,
+    0x1400000000,
+    0x2800000000,
+    0x5000000000,
+    0xA000000000,
+    0x4000000000,
+    0x20000000000,
+    0x50000000000,
+    0xA0000000000,
+    0x140000000000,
+    0x280000000000,
+    0x500000000000,
+    0xA00000000000,
+    0x400000000000,
+    0x2000000000000,
+    0x5000000000000,
+    0xA000000000000,
+    0x14000000000000,
+    0x28000000000000,
+    0x50000000000000,
+    0xA0000000000000,
+    0x40000000000000,
+    0x200000000000000,
+    0x500000000000000,
+    0xA00000000000000,
+    0x1400000000000000,
+    0x2800000000000000,
+    0x5000000000000000,
+    0xA000000000000000,
+    0x4000000000000000,
+    0x0,
+    0x0,
+    0x0,
+    0x0,
+    0x0,
+    0x0,
+    0x0,
+    0x0,
+];
 
 pub fn robbe_gen_moves(robbe: Bitboard) -> Bitboard {
     let robbe_loc = robbe.bits;
@@ -149,4 +427,68 @@ pub fn robbe_gen_moves(robbe: Bitboard) -> Bitboard {
 
 pub fn robbe_lookup(pos: u8) -> Bitboard {
     Bitboard::from(LOOKUP_ROBBEN[pos as usize])
+}
+
+pub fn moewe_gen_moves(moewe: Bitboard) -> Bitboard {
+    let moewe_loc = moewe.bits;
+
+    let clip_file_a = moewe_loc & NOT_FILE_A;
+    let clip_file_h = moewe_loc & NOT_FILE_H;
+
+    let spot_2 = moewe_loc << 8;
+    let spot_4 = clip_file_h << 1;
+    let spot_6 = moewe_loc >> 8;
+    let spot_8 = clip_file_a >> 1;
+
+    let moves = spot_2 | spot_4 | spot_6 | spot_8;
+
+    Bitboard::from(moves)
+}
+
+pub fn moewe_lookup(pos: u8) -> Bitboard {
+    Bitboard::from(LOOKUP_MOEWEN[pos as usize])
+}
+
+pub fn seestern_gen_moves(seestern: Bitboard, player: bool) -> Bitboard {
+    let seestern_loc = seestern.bits;
+
+    let clip_file_a = seestern_loc & NOT_FILE_A;
+    let clip_file_h = seestern_loc & NOT_FILE_H;
+
+    let spot_1 = clip_file_a << 7;
+    let spot_3 = clip_file_h << 9;
+    let spot_5 = clip_file_h >> 7;
+    let spot_7 = clip_file_a >> 9;
+
+    let spot_2 = (seestern_loc << 8) * (player as u64);
+    let spot_6 = (seestern_loc >> 8) * (!player as u64);
+
+    let moves = spot_1 | spot_2 | spot_3 | spot_5 | spot_6 | spot_7;
+
+    Bitboard::from(moves)
+}
+
+pub fn seestern_lookup(pos: u8, player: bool) -> Bitboard {
+    Bitboard::from(LOOKUP_SEESTERN[(((player as u8) << 6) + pos) as usize])
+}
+
+pub fn muschel_gen_moves(muschel: Bitboard, player: bool) -> Bitboard {
+    let muschel_loc = muschel.bits;
+
+    let clip_file_a = muschel_loc & NOT_FILE_A;
+    let clip_file_h = muschel_loc & NOT_FILE_H;
+
+    let spot_1 = (clip_file_a << 7) * (player as u64);
+    let spot_3 = (clip_file_h << 9) * (player as u64);
+
+    let spot_5 = (clip_file_h >> 7) * (!player as u64);
+    let spot_7 = (clip_file_a >> 9) * (!player as u64);
+
+    let moves = spot_1 | spot_3 | spot_5 | spot_7;
+
+    Bitboard::from(moves)
+}
+
+pub fn muschel_lookup(pos: u8, player: bool) -> Bitboard {
+    Bitboard::from(LOOKUP_MUSCHELN[(((player as u8) << 6) + pos) as usize])
 }

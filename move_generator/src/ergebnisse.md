@@ -132,3 +132,31 @@ example::get_points_2:
         ret
 ````
 > So yeah, if we measure according to how many operations we have, then `get_points_2()` is superior.
+
+# After hooking everything up
+| Perft level | Move-count | time taken | Speed |
+| ----------- | ----------- | ----------- | ----------- |
+Perft  0 |                 17 |   800.00ns |      21.2 MNodes/sec
+Perft  1 |                289 |     1.10µs |     262.7 MNodes/sec
+Perft  2 |              5,066 |    11.20µs |     452.3 MNodes/sec
+Perft  3 |             88,804 |   192.40µs |     461.6 MNodes/sec
+Perft  4 |          1,658,540 |     3.36ms |     493.6 MNodes/sec
+Perft  5 |         30,968,180 |    62.04ms |     499.2 MNodes/sec
+Perft  6 |        608,131,591 |      1.17s |     517.9 MNodes/sec
+Perft  7 |     11,933,458,089 |     22.91s |     520.9 MNodes/sec
+Perft  8 |    244,687,696,714 |    447.59s |     546.7 MNodes/sec
+
+> Dayum - thats slow, lets try using lookup tables for all
+
+| Perft level | Move-count | time taken | Speed |
+| ----------- | ----------- | ----------- | ----------- |
+Perft  0 |                 17 |   600.00ns |      28.3 MNodes/sec
+Perft  1 |                289 |     1.10µs |     262.7 MNodes/sec
+Perft  2 |              5,066 |     9.80µs |     516.9 MNodes/sec
+Perft  3 |             88,804 |   169.40µs |     524.2 MNodes/sec
+Perft  4 |          1,658,540 |     2.96ms |     560.7 MNodes/sec
+Perft  5 |         30,968,180 |    55.16ms |     561.5 MNodes/sec
+Perft  6 |        608,131,591 |      1.02s |     597.7 MNodes/sec
+Perft  7 |     11,933,458,089 |     19.75s |     604.1 MNodes/sec
+
+> Ok that greatly improved times
