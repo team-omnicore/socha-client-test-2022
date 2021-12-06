@@ -1,11 +1,17 @@
 use crate::bitboard::Bitboard;
 use crate::board::Board;
-use crate::moves::{moewe_gen_moves, muschel_gen_moves, robbe_gen_moves, robbe_lookup, seestern_gen_moves, seestern_lookup, moewe_lookup, muschel_lookup};
+use crate::moves::{
+    moewe_gen_moves, moewe_lookup, muschel_gen_moves, muschel_lookup, robbe_gen_moves,
+    robbe_lookup, seestern_gen_moves, seestern_lookup,
+};
 use crate::{bit_loop, pretty_print_speed, square_of};
+use chrono::{Date, Utc, Local};
 use separator::Separatable;
-use std::fmt;
 use std::fmt::Formatter;
-use std::time::SystemTime;
+use std::io::Write;
+use std::thread::sleep;
+use std::time::{Duration, SystemTime};
+use std::{fmt, io};
 
 pub struct Gamestate {
     pub board: Board,
@@ -30,21 +36,48 @@ impl Gamestate {
         }
     }
 
-    pub fn begin_perft(&self, depth: u8) {
-        let start = SystemTime::now();
-        let count = self.perft(depth);
+    pub fn perft_up_to(&self, depth: u8) {
+        println!("| Perft level | Move-count | time taken | Speed | Multiplier |\n| ----------- | ----------- | ----------- | ----------- | ----------- |");
 
-        let stop = start.elapsed().unwrap();
+        let mut last_time = 1f64;
+        let mut last_count = 1f64;
+        let mut time_multiplier = 1f64;
+        let mut count_multiplier = 1f64;
+        for i in 0..depth {
 
-        let speed = count as f64 / stop.as_secs_f64();
+            let current_time = Local::now();
+            let estimated_duration = Duration::from_secs_f64(time_multiplier*last_time);
+            let estimated_finish = current_time.checked_add_signed(chrono::Duration::from_std(estimated_duration).unwrap()).unwrap();
 
-        println!(
-            "Perft {:>2} | {:>18} | {:>10.2?} | {:>20}",
-            depth,
-            count.separated_string(),
-            stop,
-            pretty_print_speed(speed)
-        );
+            print!(
+                "Estimated time is {:.1?} - Working since {} - Finishes {}",
+                estimated_duration,
+                current_time.format("%Y-%m-%d %H:%M:%S"),
+                estimated_finish.format("%Y-%m-%d %H:%M:%S")
+            );
+            io::stdout().flush();
+
+            let start = SystemTime::now();
+            let count = self.perft(i);
+            let duration = start.elapsed().unwrap();
+
+            count_multiplier = count as f64 / last_count;
+            last_count = count as f64;
+
+            time_multiplier = duration.as_secs_f64() / last_time;
+            last_time = duration.as_secs_f64();
+
+            let speed = count as f64 / duration.as_secs_f64();
+
+            println!(
+                "\rPerft {:>1} | {:>18} | {:>10.2?} | {:>20} | {:>10.1}",
+                i,
+                count.separated_string(),
+                duration,
+                pretty_print_speed(speed),
+                count_multiplier
+            );
+        }
     }
 
     fn perft(&self, depth: u8) -> u64 {
