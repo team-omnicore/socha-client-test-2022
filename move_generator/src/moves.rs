@@ -90,7 +90,7 @@ pub fn muschel_gen_moves(muschel: Bitboard) -> Bitboard {
     Bitboard::from(moves)
 }
 
-pub fn moewe_gen_moves(moewe: Bitboard, maximizing_player: bool) -> Bitboard {
+pub fn moewe_gen_moves(moewe: Bitboard) -> Bitboard {
     let moewe_loc = moewe.bits;
 
     let clip_file_a = moewe_loc & NOT_FILE_A;

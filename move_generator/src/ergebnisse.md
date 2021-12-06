@@ -93,3 +93,42 @@ if (new_robbe & enemy).bits != 0 {
 }
 ````
 > 'Tis a mixture of branching and non branching code. Right in the middle.
+
+# Other functions
+
+## Adding points for Leicht-Figuren
+
+````rust
+pub const fn get_points_1(maximizing_player: bool, new_moewe:u64)->u8{
+    ((new_moewe & 0xFF00000000000000 != 0)as u8) * (maximizing_player as u8)
+                | ((new_moewe & 0xFF != 0)as u8) * (!maximizing_player as u8)
+}
+
+pub const fn get_points_2(maximizing_player: bool, new_moewe:u64)->u8{
+    ((new_moewe & 0xFF00000000000000 & ((maximizing_player as u64) * u64::MAX)
+        | new_moewe & 0xFF & ((!maximizing_player as u64) * u64::MAX)) != 0) as u8
+}
+````
+> Comparing both functions in assembly:
+````assembly
+example::get_points_1:
+        xor     ecx, ecx
+        mov     rax, rsi
+        shr     rax, 56
+        setne   cl
+        xor     eax, eax
+        test    sil, sil
+        setne   al
+        test    edi, edi
+        cmovne  eax, ecx
+        ret
+example::get_points_2:
+        test    edi, edi
+        movabs  rax, -72057594037927936
+        mov     ecx, 255
+        cmovne  rcx, rax
+        test    rcx, rsi
+        setne   al
+        ret
+````
+> So yeah, if we measure according to how many operations we have, then `get_points_2()` is superior.

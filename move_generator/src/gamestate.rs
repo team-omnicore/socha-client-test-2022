@@ -1,6 +1,6 @@
 use crate::bitboard::Bitboard;
 use crate::board::Board;
-use crate::moves::{robbe_gen_moves, robbe_lookup};
+use crate::moves::{robbe_gen_moves, robbe_lookup, seestern_gen_moves, moewe_gen_moves};
 use crate::{bit_loop, pretty_print_speed, square_of};
 use separator::Separatable;
 use std::fmt;
@@ -39,7 +39,7 @@ impl Gamestate {
         let speed = count as f64 / stop.as_secs_f64();
 
         println!(
-            "Perft {:>2} | {:>17} | {:>17?} | {:>20}",
+            "Perft {:>2} | {:>18} | {:>10.2?} | {:>20}",
             depth,
             count.separated_string(),
             stop,
@@ -59,6 +59,8 @@ impl Gamestate {
 
         let mut counter = 0;
 
+        /////////////////////////////////////////ROBBE////////////////////////////////////////
+        
         let mut robbe = robben.bits;
         while robbe != 0 {
             let old_pos = square_of(robbe);
@@ -81,8 +83,6 @@ impl Gamestate {
                         clone.board.friendly &= !old_robbe;
                         clone.board.robben |= new_robbe;
                         clone.board.friendly |= new_robbe;
-
-                        let mut points_added = 0u8;
 
                         let mut points_added = 0u8;
                         if (new_robbe & enemy).bits != 0 {
@@ -116,6 +116,70 @@ impl Gamestate {
             }
             robbe &= robbe - 1;
         }
+
+        /////////////////////////////////////////MOEWE///////////////////////////////////////
+
+        let mut moewe = moewen.bits;
+        while moewe != 0 {
+            let old_pos = square_of(moewe);
+            let old_moewe = Bitboard::from(1 << old_pos);
+
+            let legal = moewe_gen_moves(old_moewe) & unoccupied;
+            let mut mov = legal.bits;
+
+            if depth > 0 {
+                while mov != 0 {
+                    if !self.is_game_over() {
+                        let new_pos = square_of(mov);
+                        let new_moewe = Bitboard::from(1 << new_pos);
+
+                        let mut clone = self.clone();
+
+                        //Legal moves do not overlap with double or friendly pieces
+
+                        clone.board.moewen &= !old_moewe;
+                        clone.board.friendly &= !old_moewe;
+                        clone.board.moewen |= new_moewe;
+                        clone.board.friendly |= new_moewe;
+
+                        let mut points_added = 0u8;
+                        if (new_moewe & enemy).bits != 0 {
+                            clone.board.enemy &= !new_moewe;
+                            clone.board.robben &= !new_moewe;
+                            clone.board.seesterne &= !new_moewe;
+                            clone.board.muscheln &= !new_moewe;
+                            clone.board.moewen &= !new_moewe;
+
+                            let overlaps = Bitboard::from(((double.bits & new_moewe.bits) != 0)as u64 * u64::MAX);
+                            let clip_moewe = !new_moewe | !overlaps;
+                            clone.board.double &= clip_moewe;
+                            clone.board.moewen &= clip_moewe;
+                            clone.board.friendly &= clip_moewe;
+                            points_added += 1 & overlaps.bits as u8;
+                        }
+
+                        points_added += ((new_moewe.bits & 0xFF00000000000000 & ((self.maximizing_player as u64) * u64::MAX)
+                            | new_moewe.bits & 0xFF & ((!self.maximizing_player as u64) * u64::MAX)) != 0) as u8;
+
+                        unsafe { clone.score.bytes[clone.maximizing_player as usize] += points_added };
+
+                        clone.maximizing_player = !self.maximizing_player;
+                        clone.board.friendly.swap_with(&mut clone.board.enemy);
+                        //clone.board.rotate180(); //Dont need it, because moewe moves symmetrically
+
+                        counter += clone.perft(depth - 1);
+                    }
+                    mov &= mov - 1;
+                }
+            } else {
+                counter += legal.bits.count_ones() as u64;
+            }
+            moewe &= moewe - 1;
+        }
+
+
+
+
         return counter;
     }
 
