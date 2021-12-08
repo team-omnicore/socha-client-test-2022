@@ -58,14 +58,7 @@ version = "0.1.0"
 dependencies = [
  "chrono",
  "separator",
- "thincollections",
 ]
-
-[[package]]
-name = "thincollections"
-version = "0.5.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b01816415080bff551717565adfcd5502469ce118170d1a469cdf9563ddafd41"
 
 [[package]]
 name = "time"

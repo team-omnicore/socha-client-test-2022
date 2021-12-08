@@ -1,17 +1,16 @@
 use crate::bitboard::Bitboard;
 use crate::board::Board;
 use crate::moves::{
-    moewe_gen_moves, moewe_lookup, muschel_gen_moves, muschel_lookup, robbe_gen_moves,
-    robbe_lookup, seestern_gen_moves, seestern_lookup,
+    moewe_lookup, muschel_lookup, robbe_gen_moves, robbe_lookup,
+    seestern_gen_moves, seestern_lookup,
 };
-use crate::{bit_loop, pretty_print_speed, square_of};
-use chrono::{Date, Utc, Local};
+use crate::{pretty_print_speed, square_of};
+use chrono::Local;
 use separator::Separatable;
-use std::fmt::Formatter;
+
+use std::io;
 use std::io::Write;
-use std::thread::sleep;
 use std::time::{Duration, SystemTime};
-use std::{fmt, io};
 
 pub struct Gamestate {
     pub board: Board,
@@ -36,6 +35,15 @@ impl Gamestate {
         }
     }
 
+    pub fn new(board: Board) -> Self {
+        Gamestate {
+            board,
+            turn: 1,
+            maximizing_player: true,
+            score: Score { short: 0 },
+        }
+    }
+
     pub fn perft_up_to(&self, depth: u8) {
         println!("|Depth|Move-count|Elapsed time|Speed|Multiplier|\n|---|---|---|---|---|");
 
@@ -44,10 +52,11 @@ impl Gamestate {
         let mut time_multiplier = 1f64;
         let mut count_multiplier = 1f64;
         for i in 0..depth {
-
             let current_time = Local::now();
-            let estimated_duration = Duration::from_secs_f64(time_multiplier*last_time);
-            let estimated_finish = current_time.checked_add_signed(chrono::Duration::from_std(estimated_duration).unwrap()).unwrap();
+            let estimated_duration = Duration::from_secs_f64(time_multiplier * last_time);
+            let estimated_finish = current_time
+                .checked_add_signed(chrono::Duration::from_std(estimated_duration).unwrap())
+                .unwrap();
 
             print!(
                 "> Estimated time is {:.1?} - Working since {} - Finishes {}",
@@ -80,14 +89,20 @@ impl Gamestate {
         }
     }
 
-    fn perft(&self, depth: u8) -> u64 {
+    pub fn perft(&self, depth: u8) -> u64 {
+
+        unsafe {
+            if self.score.bytes[0] == 2 {
+                println!("{:?}", self.score.bytes);
+            }
+        }
+
         let seesterne = self.board.seesterne & self.board.friendly;
         let robben = self.board.robben & self.board.friendly;
         let muscheln = self.board.muscheln & self.board.friendly;
         let moewen = self.board.moewen & self.board.friendly;
         let enemy = self.board.enemy;
         let double = self.board.double;
-        let friendly = self.board.friendly;
         let unoccupied = !self.board.friendly;
 
         let mut counter = 0;
@@ -111,29 +126,84 @@ impl Gamestate {
 
                         let mut clone = self.clone();
 
-                        //Legal moves do not overlap with double or friendly pieces
-
+                        //Clear old FRIENDLY piece, set new piece
                         clone.board.robben &= !old_robbe;
                         clone.board.friendly &= !old_robbe;
                         clone.board.robben |= new_robbe;
                         clone.board.friendly |= new_robbe;
 
+                        //Define points to be added to own score
                         let mut points_added = 0u8;
+
+                        /// Move double from old piece to new piece
+                        /// Branching:
+                        /// ```rust
+                        /// if double.get(old_pos) {
+                        ///     double = double.clear(old_pos);
+                        ///     double = double.set(new_pos);
+                        /// }
+                        /// ```
+                        /// Non-branching:
+                        /// ```rust
+                        /// let overlaps = crate::softwarechallenge_2022::gamestate::overlaps(clone.board.double, old_robbe);
+                        /// clone.board.double &= !old_robbe | !overlaps;          
+                        /// clone.board.double |= new_robbe & overlaps;
+                        /// ```
+                        let old_overlaps_double = overlaps(clone.board.double, old_robbe);
+                        clone.board.double &= !old_robbe | !old_overlaps_double;
+                        clone.board.double |= new_robbe & old_overlaps_double;
+
+                        //If new piece overlaps with enemy's piece at that position
                         if (new_robbe & enemy).bits != 0 {
+
+                            //Clear enemy's piece. Dont know which piece, so just clear all bitboards.
                             clone.board.enemy &= !new_robbe;
                             clone.board.robben &= !new_robbe;
                             clone.board.seesterne &= !new_robbe;
-                            clone.board.muscheln &= !new_robbe;
                             clone.board.moewen &= !new_robbe;
+                            clone.board.muscheln &= !new_robbe;
 
-                            let overlaps = Bitboard::from(
-                                ((double.bits & new_robbe.bits) != 0) as u64 * u64::MAX,
-                            );
+                            /// We have already moved our double piece, if it was a double
+                            /// piece. That means, if the new position is 1, there is a either a double
+                            /// enemy piece, or we were a double friendly piece jumping on a single or double piece.
+                            /// Each way, the field and double needs to be cleared, and we get a point.
+                            clone.board.double ^= new_robbe;
+                            
+                            /// We have already moved our double piece, if it was a double
+                            /// piece. That means, if the new position is 1, there is a either a double
+                            /// enemy piece, or we were a double friendly piece jumping on a single or double piece.
+                            /// Each way, the field and double needs to be cleared, and we get a point.
+                            /// Branching:
+                            /// ```rust
+                            /// if double.get(new_pos) as u8 == 0 {
+                            ///     clone.board.robben &= !new_robbe;
+                            ///     clone.board.friendly &= !new_robbe;
+                            ///     points_added += 1;
+                            /// }
+                            /// ```
+                            /// Non-branching:
+                            /// ```rust
+                            /// let overlaps = crate::softwarechallenge_2022::gamestate::overlaps(double, new_robbe);
+                            /// let clip_robbe = !new_robbe | overlaps;
+                            /// clone.board.robben &= clip_robbe;
+                            /// clone.board.friendly &= clip_robbe;
+                            /// points_added += 1 & !overlaps.bits as u8;
+                            /// ```
+                            let new_overlaps_double = overlaps(double, new_robbe);
+                            let clip_robbe = !new_robbe | new_overlaps_double;
+                            clone.board.robben &= clip_robbe;
+                            clone.board.friendly &= clip_robbe;
+                            points_added += 1 & !new_overlaps_double.bits as u8;
+
+                            //TODO error in algorithm - not accounting for moving double around, and not setting double correctly
+                            /*let overlaps = overlaps(double, new_robbe);
                             let clip_robbe = !new_robbe | !overlaps;
                             clone.board.double &= clip_robbe;
                             clone.board.robben &= clip_robbe;
                             clone.board.friendly &= clip_robbe;
                             points_added += 1 & overlaps.bits as u8;
+
+                             */
                         }
 
                         //points_added += (new_robbe.bits & 0xFF00000000000000 != 0) as u8; //but robbe is not leichtfigur
@@ -143,7 +213,6 @@ impl Gamestate {
 
                         clone.maximizing_player = !self.maximizing_player;
                         clone.board.friendly.swap_with(&mut clone.board.enemy); //Meh
-                                                                                //clone.board.rotate180(); //Dont need it, because robbe moves symmetrically
 
                         counter += clone.perft(depth - 1);
                     }
@@ -174,14 +243,17 @@ impl Gamestate {
 
                         let mut clone = self.clone();
 
-                        //Legal moves do not overlap with double or friendly pieces
-
                         clone.board.moewen &= !old_moewe;
                         clone.board.friendly &= !old_moewe;
                         clone.board.moewen |= new_moewe;
                         clone.board.friendly |= new_moewe;
 
                         let mut points_added = 0u8;
+
+                        let old_overlaps_double = overlaps(clone.board.double, old_moewe);
+                        clone.board.double &= !old_moewe | !old_overlaps_double;
+                        clone.board.double |= new_moewe & old_overlaps_double;
+                        
                         if (new_moewe & enemy).bits != 0 {
                             clone.board.enemy &= !new_moewe;
                             clone.board.robben &= !new_moewe;
@@ -189,14 +261,13 @@ impl Gamestate {
                             clone.board.muscheln &= !new_moewe;
                             clone.board.moewen &= !new_moewe;
 
-                            let overlaps = Bitboard::from(
-                                ((double.bits & new_moewe.bits) != 0) as u64 * u64::MAX,
-                            );
-                            let clip_moewe = !new_moewe | !overlaps;
-                            clone.board.double &= clip_moewe;
+                            clone.board.double ^= new_moewe;
+
+                            let new_overlaps_double = overlaps(double, new_moewe);
+                            let clip_moewe = !new_moewe | new_overlaps_double;
                             clone.board.moewen &= clip_moewe;
                             clone.board.friendly &= clip_moewe;
-                            points_added += 1 & overlaps.bits as u8;
+                            points_added += 1 & !new_overlaps_double.bits as u8;
                         }
 
                         points_added += self.lf_calculate_points(new_moewe);
@@ -207,7 +278,6 @@ impl Gamestate {
 
                         clone.maximizing_player = !self.maximizing_player;
                         clone.board.friendly.swap_with(&mut clone.board.enemy);
-                        //clone.board.rotate180(); //Dont need it, because moewe moves symmetrically
 
                         counter += clone.perft(depth - 1);
                     }
@@ -238,29 +308,31 @@ impl Gamestate {
 
                         let mut clone = self.clone();
 
-                        //Legal moves do not overlap with double or friendly pieces
-
                         clone.board.seesterne &= !old_seestern;
                         clone.board.friendly &= !old_seestern;
                         clone.board.seesterne |= new_seestern;
                         clone.board.friendly |= new_seestern;
 
                         let mut points_added = 0u8;
+
+                        let old_overlaps_double = overlaps(clone.board.double, old_seestern);
+                        clone.board.double &= !old_seestern | !old_overlaps_double;
+                        clone.board.double |= new_seestern & old_overlaps_double;
+                        
                         if (new_seestern & enemy).bits != 0 {
                             clone.board.enemy &= !new_seestern;
                             clone.board.robben &= !new_seestern;
                             clone.board.seesterne &= !new_seestern;
+                            clone.board.moewen &= !new_seestern;
                             clone.board.muscheln &= !new_seestern;
-                            clone.board.seesterne &= !new_seestern;
 
-                            let overlaps = Bitboard::from(
-                                ((double.bits & new_seestern.bits) != 0) as u64 * u64::MAX,
-                            );
-                            let clip_seestern = !new_seestern | !overlaps;
-                            clone.board.double &= clip_seestern;
+                            clone.board.double ^= new_seestern;
+
+                            let new_overlaps_double = overlaps(double, new_seestern);
+                            let clip_seestern = !new_seestern | new_overlaps_double;
                             clone.board.seesterne &= clip_seestern;
                             clone.board.friendly &= clip_seestern;
-                            points_added += 1 & overlaps.bits as u8;
+                            points_added += 1 & !new_overlaps_double.bits as u8;
                         }
 
                         points_added += self.lf_calculate_points(new_seestern);
@@ -271,7 +343,6 @@ impl Gamestate {
 
                         clone.maximizing_player = !self.maximizing_player;
                         clone.board.friendly.swap_with(&mut clone.board.enemy);
-                        //clone.board.rotate180(); //Dont need it, because seestern moves symmetrically
 
                         counter += clone.perft(depth - 1);
                     }
@@ -302,29 +373,31 @@ impl Gamestate {
 
                         let mut clone = self.clone();
 
-                        //Legal moves do not overlap with double or friendly pieces
-
                         clone.board.muscheln &= !old_muschel;
                         clone.board.friendly &= !old_muschel;
                         clone.board.muscheln |= new_muschel;
                         clone.board.friendly |= new_muschel;
 
                         let mut points_added = 0u8;
+
+                        let old_overlaps_double = overlaps(clone.board.double, old_muschel);
+                        clone.board.double &= !old_muschel | !old_overlaps_double;
+                        clone.board.double |= new_muschel & old_overlaps_double;
+
                         if (new_muschel & enemy).bits != 0 {
                             clone.board.enemy &= !new_muschel;
                             clone.board.robben &= !new_muschel;
-                            clone.board.muscheln &= !new_muschel;
-                            clone.board.muscheln &= !new_muschel;
+                            clone.board.seesterne &= !new_muschel;
+                            clone.board.moewen &= !new_muschel;
                             clone.board.muscheln &= !new_muschel;
 
-                            let overlaps = Bitboard::from(
-                                ((double.bits & new_muschel.bits) != 0) as u64 * u64::MAX,
-                            );
-                            let clip_muschel = !new_muschel | !overlaps;
-                            clone.board.double &= clip_muschel;
+                            clone.board.double ^= new_muschel;
+
+                            let new_overlaps_double = overlaps(double, new_muschel);
+                            let clip_muschel = !new_muschel | new_overlaps_double;
                             clone.board.muscheln &= clip_muschel;
                             clone.board.friendly &= clip_muschel;
-                            points_added += 1 & overlaps.bits as u8;
+                            points_added += 1 & !new_overlaps_double.bits as u8;
                         }
 
                         points_added += self.lf_calculate_points(new_muschel);
@@ -335,7 +408,6 @@ impl Gamestate {
 
                         clone.maximizing_player = !self.maximizing_player;
                         clone.board.friendly.swap_with(&mut clone.board.enemy);
-                        //clone.board.rotate180(); //Dont need it, because muschel moves symmetrically
 
                         counter += clone.perft(depth - 1);
                     }

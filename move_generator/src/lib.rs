@@ -1,5 +1,5 @@
-#![allow(dead_code)]
-#![allow(unused)]
+#![allow(dead_code, unused)]
+#![feature(stmt_expr_attributes)]
 
 pub mod bitboard;
 pub mod board;
@@ -25,6 +25,6 @@ pub fn pretty_print_speed(speed: f64) -> String {
     } else if speed < 1000000000f64 {
         format!("{:.1} MNodes/sec", speed / 1000000f64)
     } else {
-        format!("{:.1} GNodes/sec", speed / 1000000000f64)
+        format!("{:.2} GNodes/sec", speed / 1000000000f64)
     }
 }
