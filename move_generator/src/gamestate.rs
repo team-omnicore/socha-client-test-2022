@@ -113,18 +113,23 @@ impl Gamestate {
         let mut robbe = robben.bits;
         while robbe != 0 {
             let old_pos = square_of(robbe);
-            let old_robbe = Bitboard::from(1 << old_pos);
 
             let legal = robbe_lookup(old_pos) & unoccupied;
             let mut mov = legal.bits;
 
             if depth > 0 {
+
+                let old_robbe = Bitboard::from(1 << old_pos);
+                let old_overlaps_double = overlaps(self.board.double, old_robbe);
+                let double_clone = self.board.double &( !old_robbe | !old_overlaps_double );
+
                 while mov != 0 {
                     if !self.is_game_over() {
                         let new_pos = square_of(mov);
                         let new_robbe = Bitboard::from(1 << new_pos);
 
                         let mut clone = self.clone();
+                        clone.board.double = double_clone;
 
                         //Clear old FRIENDLY piece, set new piece
                         clone.board.robben &= !old_robbe;
@@ -149,8 +154,6 @@ impl Gamestate {
                         /// clone.board.double &= !old_robbe | !overlaps;          
                         /// clone.board.double |= new_robbe & overlaps;
                         /// ```
-                        let old_overlaps_double = overlaps(clone.board.double, old_robbe);
-                        clone.board.double &= !old_robbe | !old_overlaps_double;
                         clone.board.double |= new_robbe & old_overlaps_double;
 
                         //If new piece overlaps with enemy's piece at that position
@@ -230,18 +233,24 @@ impl Gamestate {
         let mut moewe = moewen.bits;
         while moewe != 0 {
             let old_pos = square_of(moewe);
-            let old_moewe = Bitboard::from(1 << old_pos);
 
             let legal = moewe_lookup(old_pos) & unoccupied;
             let mut mov = legal.bits;
 
             if depth > 0 {
+
+                let old_moewe = Bitboard::from(1 << old_pos);
+
+                let old_overlaps_double = overlaps(self.board.double, old_moewe);
+                let double_clone = self.board.double & (!old_moewe | !old_overlaps_double);
+
                 while mov != 0 {
                     if !self.is_game_over() {
                         let new_pos = square_of(mov);
                         let new_moewe = Bitboard::from(1 << new_pos);
 
                         let mut clone = self.clone();
+                        clone.board.double = double_clone;
 
                         clone.board.moewen &= !old_moewe;
                         clone.board.friendly &= !old_moewe;
@@ -250,8 +259,7 @@ impl Gamestate {
 
                         let mut points_added = 0u8;
 
-                        let old_overlaps_double = overlaps(clone.board.double, old_moewe);
-                        clone.board.double &= !old_moewe | !old_overlaps_double;
+                        ///look up!
                         clone.board.double |= new_moewe & old_overlaps_double;
                         
                         if (new_moewe & enemy).bits != 0 {
@@ -295,18 +303,23 @@ impl Gamestate {
         let mut seestern = seesterne.bits;
         while seestern != 0 {
             let old_pos = square_of(seestern);
-            let old_seestern = Bitboard::from(1 << old_pos);
 
             let legal = seestern_lookup(old_pos, self.maximizing_player) & unoccupied;
             let mut mov = legal.bits;
 
             if depth > 0 {
+
+                let old_seestern = Bitboard::from(1 << old_pos);
+                let old_overlaps_double = overlaps(self.board.double, old_seestern);
+                let double_clone = self.board.double & (!old_seestern | !old_overlaps_double);
+
                 while mov != 0 {
                     if !self.is_game_over() {
                         let new_pos = square_of(mov);
                         let new_seestern = Bitboard::from(1 << new_pos);
 
                         let mut clone = self.clone();
+                        clone.board.double = double_clone;
 
                         clone.board.seesterne &= !old_seestern;
                         clone.board.friendly &= !old_seestern;
@@ -315,8 +328,6 @@ impl Gamestate {
 
                         let mut points_added = 0u8;
 
-                        let old_overlaps_double = overlaps(clone.board.double, old_seestern);
-                        clone.board.double &= !old_seestern | !old_overlaps_double;
                         clone.board.double |= new_seestern & old_overlaps_double;
                         
                         if (new_seestern & enemy).bits != 0 {
@@ -360,12 +371,14 @@ impl Gamestate {
         let mut muschel = muscheln.bits;
         while muschel != 0 {
             let old_pos = square_of(muschel);
-            let old_muschel = Bitboard::from(1 << old_pos);
 
             let legal = muschel_lookup(old_pos, self.maximizing_player) & unoccupied;
             let mut mov = legal.bits;
 
             if depth > 0 {
+
+                let old_muschel = Bitboard::from(1 << old_pos);
+
                 while mov != 0 {
                     if !self.is_game_over() {
                         let new_pos = square_of(mov);
